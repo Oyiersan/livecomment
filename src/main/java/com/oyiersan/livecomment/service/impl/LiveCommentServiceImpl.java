@@ -77,7 +77,6 @@ public class LiveCommentServiceImpl implements LiveCommentService {
             userCommentMapper.selectList(Wrappers.<UserComment>lambdaQuery().orderByDesc(UserComment::getId));
         });
         List<UserComment> list = userCommentPage.getList();
-        UserCommentVO userCommentVO = new UserCommentVO();
 
         List<UserCommentVO> voList = new ArrayList<>();
         PageInfo<UserCommentVO> voPageInfo = new PageInfo<>();
@@ -85,6 +84,7 @@ public class LiveCommentServiceImpl implements LiveCommentService {
         voPageInfo.setList(voList);
         if (list != null && !list.isEmpty()) {
             list.forEach(userComment -> {
+                UserCommentVO userCommentVO = new UserCommentVO();
                 LiveUser liveUser = liveUserMapper.selectById(userComment.getUserId());
                 userCommentVO.setUserId(userComment.getUserId());
                 userCommentVO.setUserName(liveUser.getName());
@@ -101,8 +101,16 @@ public class LiveCommentServiceImpl implements LiveCommentService {
 
     @Override
     public PageInfo<UserCommentTopVO>  topUserComment(TopUserCommentDTO dto) {
-        PageInfo<UserCommentTopVO> userCommentTopVOPageInfo = PageHelper.startPage(dto.getPageNo(), dto.getPageSize()).doSelectPageInfo(() -> userCommentMapper.topCommentList("2021-02-04"));
-//        List<UserCommentTopVO> list = userCommentTopVOPageInfo.getList();
+        PageInfo<UserCommentTopVO> userCommentTopVOPageInfo = PageHelper.startPage(dto.getPageNo(), dto.getPageSize()).doSelectPageInfo(() -> userCommentMapper.topCommentList(dto.getCommentDate()));
+        List<UserCommentTopVO> list = userCommentTopVOPageInfo.getList();
+        list.forEach(userCommentTopVO -> {
+            LiveUser liveUser = liveUserMapper.selectById(userCommentTopVO.getUserId());
+            if (liveUser != null) {
+                userCommentTopVO.setUserName(liveUser.getName());
+                userCommentTopVO.setAvatar(liveUser.getAvatar());
+
+            }
+        });
 //        List<UserCommentTopVO> userCommentTopVOS = userCommentMapper.topCommentList("2021-02-04");
         return userCommentTopVOPageInfo;
     }
@@ -167,8 +175,10 @@ public class LiveCommentServiceImpl implements LiveCommentService {
 
     @PreDestroy
     public void likeItVideoPreDestroy() {
-        VideoLikeNum entity = new VideoLikeNum();
-        entity.setLikeNum(videoLikeNum);
-        videoLikeNumMapper.insert(entity);
+        if (videoLikeNum != 0) {
+            VideoLikeNum entity = new VideoLikeNum();
+            entity.setLikeNum(videoLikeNum);
+            videoLikeNumMapper.insert(entity);
+        }
     }
 }
